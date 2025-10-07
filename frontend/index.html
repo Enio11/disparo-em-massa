@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disparo em Massa - WhatsApp</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Verificação de Autenticação -->
+    <script>
+        // Verificar se está autenticado
+        if (!localStorage.getItem('authenticated')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <div class="container">
+        <header>
+            <h1>📱 Disparo em Massa - WhatsApp</h1>
+            <p class="subtitle">Gerenciamento de campanhas integrado com Evolution API</p>
+            <button onclick="logout()" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                🚪 Sair
+            </button>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="campanhas">Campanhas</button>
+            <button class="tab-btn" data-tab="nova-campanha">Nova Campanha</button>
+            <button class="tab-btn" data-tab="instancias">Instâncias</button>
+        </nav>
+
+        <!-- Tab: Campanhas -->
+        <div id="campanhas-tab" class="tab-content active">
+            <h2>Minhas Campanhas</h2>
+            <div id="campanhas-list" class="campanhas-grid">
+                <div class="loading">Carregando campanhas...</div>
+            </div>
+        </div>
+
+        <!-- Tab: Nova Campanha -->
+        <div id="nova-campanha-tab" class="tab-content">
+            <h2>Criar Nova Campanha</h2>
+            <form id="form-campanha" class="form">
+                <div class="form-group">
+                    <label for="nome">Nome da Campanha</label>
+                    <input type="text" id="nome" name="nome" required placeholder="Ex: Promoção Black Friday">
+                </div>
+
+                <div class="form-group">
+                    <label for="instancia">Instância do WhatsApp</label>
+                    <select id="instancia" name="instance_name" required>
+                        <option value="">⏳ Carregando instâncias...</option>
+                    </select>
+                    <small>⚠️ Aguarde o carregamento das instâncias conectadas antes de criar a campanha</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo">Tipo de Mensagem</label>
+                    <select id="tipo" name="tipo" required>
+                        <option value="texto">Texto</option>
+                        <option value="imagem">Imagem</option>
+                        <option value="video">Vídeo</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="mensagem">Mensagem</label>
+                    <textarea id="mensagem" name="mensagem" rows="5" required placeholder="Digite sua mensagem..."></textarea>
+                </div>
+
+                <div id="media-fields" class="form-group" style="display: none;">
+                    <label for="media_url">URL da Mídia</label>
+                    <input type="url" id="media_url" name="media_url" placeholder="https://exemplo.com/imagem.jpg">
+
+                    <label for="media_filename">Nome do Arquivo</label>
+                    <input type="text" id="media_filename" name="media_filename" placeholder="imagem.jpg">
+
+                    <label for="mimetype">MIME Type</label>
+                    <select id="mimetype" name="mimetype">
+                        <option value="image/jpeg">image/jpeg</option>
+                        <option value="image/png">image/png</option>
+                        <option value="video/mp4">video/mp4</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="delay">Delay entre envios (segundos)</label>
+                    <input type="number" id="delay" name="delay_entre_envios" value="5" min="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Origem dos Contatos</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="origem_contatos" value="supabase" checked>
+                            Buscar do Supabase
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" name="origem_contatos" value="manual">
+                            Digitar Manualmente
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Buscar Clientes do Supabase -->
+                <div id="supabase-section" class="form-group" style="border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
+                    <h3 style="margin-top: 0;">🔍 Buscar Clientes do Supabase</h3>
+
+                    <!-- Filtros Rápidos -->
+                    <div style="margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">⚡ Filtros Rápidos:</label>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" class="btn btn-small" onclick="aplicarFiltroRapido(10)"
+                                    style="background: #28a745; color: white;">
+                                📅 Últimos 10 min
+                            </button>
+                            <button type="button" class="btn btn-small" onclick="aplicarFiltroRapido(1440)"
+                                    style="background: #17a2b8; color: white;">
+                                📅 Últimas 24h
+                            </button>
+                            <button type="button" class="btn btn-small" onclick="aplicarFiltroRapido(4320)"
+                                    style="background: #6c757d; color: white;">
+                                📅 Últimas 72h
+                            </button>
+                            <button type="button" class="btn btn-small" onclick="limparFiltros()"
+                                    style="background: #dc3545; color: white;">
+                                🗑️ Limpar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div>
+                            <label for="filtro_data_inicio">Data Início</label>
+                            <input type="datetime-local" id="filtro_data_inicio">
+                        </div>
+                        <div>
+                            <label for="filtro_data_fim">Data Fim</label>
+                            <input type="datetime-local" id="filtro_data_fim">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div>
+                            <label for="filtro_nome">Nome do Cliente</label>
+                            <input type="text" id="filtro_nome" placeholder="Buscar por nome...">
+                        </div>
+                        <div>
+                            <label for="filtro_instancia">Instância</label>
+                            <input type="text" id="filtro_instancia" placeholder="Ex: cc_8999">
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary" onclick="buscarClientesSupabase()">
+                        🔍 Buscar Clientes
+                    </button>
+
+                    <div id="clientes-result" style="margin-top: 15px; max-height: 400px; overflow-y: auto;">
+                        <p style="color: #666;">Clique em "Buscar Clientes" para carregar...</p>
+                    </div>
+
+                    <div id="clientes-selecionados" style="margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 5px; display: none;">
+                        <strong>Clientes selecionados: <span id="count-selecionados">0</span></strong>
+                    </div>
+                </div>
+
+                <!-- Lista Manual de Contatos -->
+                <div id="manual-section" class="form-group" style="display: none;">
+                    <label for="contatos">Lista de Contatos (um por linha)</label>
+                    <textarea id="contatos" rows="10" placeholder="5531999999999&#10;5531888888888&#10;..."></textarea>
+                    <small>Digite um número por linha com DDD e código do país (ex: 5531999999999)</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Criar Campanha</button>
+            </form>
+        </div>
+
+        <!-- Tab: Instâncias -->
+        <div id="instancias-tab" class="tab-content">
+            <h2>Instâncias Evolution API</h2>
+
+            <form id="form-instancia" class="form form-inline">
+                <div class="form-group">
+                    <label for="instancia_nome">Nome</label>
+                    <input type="text" id="instancia_nome" required placeholder="Minha Instância">
+                </div>
+                <div class="form-group">
+                    <label for="instance_name">Instance Name</label>
+                    <input type="text" id="instance_name" required placeholder="default">
+                </div>
+                <button type="submit" class="btn btn-primary">Adicionar</button>
+            </form>
+
+            <div id="instancias-list" class="list">
+                <div class="loading">Carregando instâncias...</div>
+            </div>
+        </div>
+
+        <!-- Modal de Detalhes da Campanha -->
+        <div id="modal-campanha" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="modal-title">Detalhes da Campanha</h2>
+                <div id="modal-body"></div>
+                <div id="modal-actions"></div>
+            </div>
+        </div>
+
+        <!-- Modal de Contatos -->
+        <div id="modal-contatos" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Contatos da Campanha</h2>
+                <div id="contatos-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

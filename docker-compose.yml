@@ -1,0 +1,61 @@
+version: "3.7"
+
+services:
+  disparo-massa:
+    image: disparo-massa:latest
+    networks:
+      - capitao-network
+    environment:
+      ## Configurações do Banco de Dados
+      - DB_HOST=168.231.98.55
+      - DB_PORT=5432
+      - DB_NAME=disparo_capitao_clean
+      - DB_USER=postgres
+      - DB_PASSWORD=123
+
+      ## Configurações da Evolution API
+      - EVOLUTION_API_URL=https://evolution.manager.capitaoclean.com
+      - EVOLUTION_API_KEY=ed909056dbc40cd452ddb98166f504a9
+
+      ## Configurações do Supabase
+      - SUPABASE_URL=https://teycepmxmsajigejnvee.supabase.co
+      - SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleWNlcG14bXNhamlnZWpudmVlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxODY0NTU5MSwiZXhwIjoyMDM0MjIxNTkxfQ.acapiVxOC665khvVZ6vXrXWw6zkaLpVqrSDEwMSneeI
+
+      ## Porta do servidor
+      - PORT=3000
+
+      ## Node Environment
+      - NODE_ENV=production
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        ## Habilitar Traefik
+        - traefik.enable=true
+
+        ## Configuração HTTP
+        - traefik.http.routers.disparo-massa.rule=Host(`disparo.capitaoclean.com`)
+        - traefik.http.routers.disparo-massa.entrypoints=websecure
+        - traefik.http.routers.disparo-massa.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.disparo-massa.service=disparo-massa
+
+        ## Configuração do serviço
+        - traefik.http.services.disparo-massa.loadbalancer.server.port=3000
+        - traefik.http.services.disparo-massa.loadbalancer.passHostHeader=true
+
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+
+networks:
+  capitao-network:
+    external: true
+    name: capitao-network

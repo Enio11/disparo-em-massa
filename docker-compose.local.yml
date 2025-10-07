@@ -1,0 +1,37 @@
+version: "3.7"
+
+services:
+  # PostgreSQL local para testes
+  postgres-local:
+    image: postgres:14
+    container_name: postgres-disparo-local
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=04c24e071db756199fe467dc9d341c3c
+      - POSTGRES_DB=disparo_capitao_clean
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Aplicação
+  disparo-massa:
+    build: .
+    container_name: disparo-massa-local
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=postgres-local
+      - DB_PORT=5432
+      - DB_NAME=disparo_capitao_clean
+      - DB_USER=postgres
+      - DB_PASSWORD=04c24e071db756199fe467dc9d341c3c
+      - EVOLUTION_API_URL=https://evolution.manager.capitaoclean.com
+      - EVOLUTION_API_KEY=ed909056dbc40cd452ddb98166f504a9
+      - PORT=3000
+      - NODE_ENV=development
+    depends_on:
+      - postgres-local
+
+volumes:
+  postgres_local_data:
