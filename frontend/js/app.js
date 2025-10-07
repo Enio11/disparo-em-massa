@@ -410,27 +410,62 @@ async function carregarInstancias() {
 }
 
 function renderizarInstancias() {
-    const container = document.getElementById('instancias-list');
+    const container = document.getElementById('instancias-evolution-list');
+
+    if (!container) {
+        console.error('Container instancias-evolution-list não encontrado');
+        return;
+    }
 
     if (instancias.length === 0) {
         container.innerHTML = '<p class="loading">Nenhuma instância encontrada.</p>';
         return;
     }
 
-    container.innerHTML = instancias.map(inst => `
-        <div class="list-item">
-            <div class="list-item-info">
-                <h4>${inst.name}</h4>
-                <p>Integration: ${inst.integration || 'N/A'}</p>
-                <p>Number: ${inst.number || 'Não conectado'}</p>
-                ${inst.profileName ? `<p>Profile: ${inst.profileName}</p>` : ''}
-                <span class="status-badge status-${inst.connected ? 'ativa' : 'inativa'}">${inst.connectionStatus}</span>
+    container.innerHTML = instancias.map(inst => {
+        const statusColor = inst.connected ? '#28a745' : '#dc3545';
+        const statusText = inst.connected ? '✅ Conectada' : '❌ Desconectada';
+        const statusBadge = inst.connectionStatus || 'disconnected';
+
+        return `
+        <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-left: 4px solid ${statusColor};">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 10px 0; color: #333;">${inst.name}</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; color: #666; font-size: 14px;">
+                        <p style="margin: 5px 0;"><strong>Tipo:</strong> ${inst.integration || 'N/A'}</p>
+                        <p style="margin: 5px 0;"><strong>Número:</strong> ${inst.number || 'Não conectado'}</p>
+                        ${inst.profileName ? `<p style="margin: 5px 0;"><strong>Perfil:</strong> ${inst.profileName}</p>` : ''}
+                    </div>
+                    <span style="display: inline-block; margin-top: 10px; padding: 5px 15px; border-radius: 20px; background: ${statusColor}; color: white; font-size: 12px; font-weight: bold;">
+                        ${statusText}
+                    </span>
+                </div>
             </div>
-            <div class="list-item-actions">
-                ${inst.connected ? '<span style="color: green;">✅ Conectada</span>' : '<span style="color: red;">❌ Desconectada</span>'}
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+                ${!inst.connected ? `
+                    <button class="btn btn-primary" onclick="conectarInstancia('${inst.name}')" style="font-size: 13px; padding: 8px 15px;">
+                        🔌 Conectar
+                    </button>
+                ` : `
+                    <button class="btn" onclick="desconectarInstancia('${inst.name}')" style="background: #ffc107; color: black; font-size: 13px; padding: 8px 15px;">
+                        🔌 Desconectar
+                    </button>
+                `}
+                <button class="btn btn-secondary" onclick="reiniciarInstancia('${inst.name}')" style="font-size: 13px; padding: 8px 15px;">
+                    🔄 Reiniciar
+                </button>
+                <button class="btn" onclick="mostrarQRCode('${inst.name}')" style="background: #17a2b8; color: white; font-size: 13px; padding: 8px 15px;">
+                    📱 Ver QR Code
+                </button>
+                <button class="btn" onclick="deletarInstanciaEvolution('${inst.name}')" style="background: #dc3545; color: white; font-size: 13px; padding: 8px 15px;">
+                    🗑️ Deletar
+                </button>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function atualizarSelectInstancias() {
@@ -915,6 +950,219 @@ document.addEventListener('DOMContentLoaded', () => {
     const metricasTab = document.getElementById('metricas-tab');
     if (metricasTab) {
         observer.observe(metricasTab, { attributes: true, attributeFilter: ['class'] });
+    }
+});
+
+// ==================== GERENCIAMENTO DE INSTÂNCIAS EVOLUTION ====================
+
+function mostrarFormCriarInstancia() {
+    document.getElementById('form-criar-instancia').style.display = 'block';
+}
+
+function ocultarFormCriarInstancia() {
+    document.getElementById('form-criar-instancia').style.display = 'none';
+    document.getElementById('form-nova-instancia').reset();
+}
+
+async function criarNovaInstancia(event) {
+    event.preventDefault();
+
+    const instanceName = document.getElementById('nova_instance_name').value;
+    const integration = document.getElementById('nova_integration').value;
+    const number = document.getElementById('nova_number').value;
+    const token = document.getElementById('nova_token').value;
+
+    try {
+        const response = await fetch(`${API_URL}/instancias/evolution/criar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                instanceName,
+                integration,
+                number: number || undefined,
+                token: token || undefined,
+                qrcode: true
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Instância criada com sucesso! Aguarde a inicialização...');
+            ocultarFormCriarInstancia();
+
+            // Aguardar 2 segundos e recarregar a lista
+            setTimeout(() => {
+                atualizarListaInstancias();
+            }, 2000);
+        } else {
+            alert('❌ Erro ao criar instância: ' + (data.error || 'Erro desconhecido'));
+        }
+    } catch (error) {
+        console.error('Erro ao criar instância:', error);
+        alert('❌ Erro ao criar instância: ' + error.message);
+    }
+}
+
+function atualizarListaInstancias() {
+    carregarInstancias();
+}
+
+async function conectarInstancia(instanceName) {
+    try {
+        const response = await fetch(`${API_URL}/instancias/evolution/${instanceName}/conectar`);
+        const data = await response.json();
+
+        if (data.success) {
+            if (data.data.pairingCode) {
+                alert(`✅ Código de pareamento gerado!\n\nCódigo: ${data.data.pairingCode}\n\nUse este código para conectar no WhatsApp do seu celular.`);
+            } else {
+                alert('✅ Solicitação de conexão enviada! Verifique o QR Code.');
+            }
+
+            // Mostrar QR Code se disponível
+            setTimeout(() => mostrarQRCode(instanceName), 1000);
+        } else {
+            alert('❌ Erro ao conectar instância: ' + (data.error || 'Erro desconhecido'));
+        }
+    } catch (error) {
+        console.error('Erro ao conectar instância:', error);
+        alert('❌ Erro ao conectar instância: ' + error.message);
+    }
+}
+
+async function desconectarInstancia(instanceName) {
+    if (!confirm(`Tem certeza que deseja desconectar a instância "${instanceName}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/instancias/evolution/${instanceName}/logout`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Instância desconectada com sucesso!');
+            atualizarListaInstancias();
+        } else {
+            alert('❌ Erro ao desconectar instância: ' + (data.error || 'Erro desconhecido'));
+        }
+    } catch (error) {
+        console.error('Erro ao desconectar instância:', error);
+        alert('❌ Erro ao desconectar instância: ' + error.message);
+    }
+}
+
+async function deletarInstanciaEvolution(instanceName) {
+    if (!confirm(`⚠️ ATENÇÃO!\n\nTem certeza que deseja DELETAR permanentemente a instância "${instanceName}"?\n\nEsta ação não pode ser desfeita!`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/instancias/evolution/${instanceName}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Instância deletada com sucesso!');
+            atualizarListaInstancias();
+        } else {
+            alert('❌ Erro ao deletar instância: ' + (data.error || 'Erro desconhecido'));
+        }
+    } catch (error) {
+        console.error('Erro ao deletar instância:', error);
+        alert('❌ Erro ao deletar instância: ' + error.message);
+    }
+}
+
+async function reiniciarInstancia(instanceName) {
+    if (!confirm(`Tem certeza que deseja reiniciar a instância "${instanceName}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/instancias/evolution/${instanceName}/reiniciar`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Instância reiniciada com sucesso! Aguarde alguns segundos...');
+            setTimeout(() => atualizarListaInstancias(), 3000);
+        } else {
+            alert('❌ Erro ao reiniciar instância: ' + (data.error || 'Erro desconhecido'));
+        }
+    } catch (error) {
+        console.error('Erro ao reiniciar instância:', error);
+        alert('❌ Erro ao reiniciar instância: ' + error.message);
+    }
+}
+
+async function mostrarQRCode(instanceName) {
+    const modal = document.getElementById('modal-qrcode');
+    const container = document.getElementById('qrcode-container');
+
+    modal.style.display = 'block';
+    container.innerHTML = '<div class="loading">Gerando QR Code...</div>';
+
+    try {
+        const response = await fetch(`${API_URL}/instancias/evolution/${instanceName}/qrcode`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+            if (data.data.base64) {
+                // QR Code em base64
+                container.innerHTML = `
+                    <img src="data:image/png;base64,${data.data.base64}"
+                         alt="QR Code"
+                         style="max-width: 100%; height: auto; border-radius: 10px;">
+                `;
+            } else if (data.data.code) {
+                // Código de pareamento
+                container.innerHTML = `
+                    <div style="padding: 30px; background: #f8f9fa; border-radius: 10px;">
+                        <h3 style="margin: 0 0 15px 0;">Código de Pareamento</h3>
+                        <p style="font-size: 32px; font-weight: bold; color: #667eea; margin: 0;">
+                            ${data.data.code}
+                        </p>
+                        <p style="margin: 15px 0 0 0; color: #666; font-size: 14px;">
+                            Use este código no WhatsApp do seu celular
+                        </p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '<p style="color: #dc3545;">QR Code não disponível. Tente conectar a instância primeiro.</p>';
+            }
+        } else {
+            container.innerHTML = '<p style="color: #dc3545;">Erro ao obter QR Code. A instância pode já estar conectada.</p>';
+        }
+    } catch (error) {
+        console.error('Erro ao obter QR Code:', error);
+        container.innerHTML = '<p style="color: #dc3545;">Erro ao obter QR Code: ' + error.message + '</p>';
+    }
+}
+
+function fecharModalQRCode() {
+    document.getElementById('modal-qrcode').style.display = 'none';
+}
+
+// Auto-carregar instâncias quando a aba for aberta
+document.addEventListener('DOMContentLoaded', () => {
+    const observer = new MutationObserver(() => {
+        const instanciasTab = document.getElementById('instancias-tab');
+        if (instanciasTab && instanciasTab.classList.contains('active')) {
+            atualizarListaInstancias();
+        }
+    });
+
+    const instanciasTab = document.getElementById('instancias-tab');
+    if (instanciasTab) {
+        observer.observe(instanciasTab, { attributes: true, attributeFilter: ['class'] });
     }
 });
 

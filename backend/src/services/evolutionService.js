@@ -420,6 +420,203 @@ class EvolutionService {
       };
     }
   }
+
+  // ==================== GERENCIAMENTO DE INSTÂNCIAS ====================
+
+  // Criar nova instância
+  async createInstance(instanceData) {
+    try {
+      const response = await axios.post(
+        `${this.baseURL}/instance/create`,
+        {
+          instanceName: instanceData.instanceName,
+          token: instanceData.token || undefined,
+          qrcode: instanceData.qrcode !== false, // true por padrão
+          number: instanceData.number || undefined,
+          integration: instanceData.integration || 'WHATSAPP-BAILEYS',
+          rejectCall: instanceData.rejectCall || false,
+          msgCall: instanceData.msgCall || '',
+          groupsIgnore: instanceData.groupsIgnore || false,
+          alwaysOnline: instanceData.alwaysOnline || false,
+          readMessages: instanceData.readMessages || false,
+          readStatus: instanceData.readStatus || false,
+          syncFullHistory: instanceData.syncFullHistory || false,
+          ...instanceData
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': this.apiKey
+          }
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Erro ao criar instância:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data || error.message
+      };
+    }
+  }
+
+  // Deletar instância
+  async deleteInstance(instanceName) {
+    try {
+      const response = await axios.delete(
+        `${this.baseURL}/instance/delete/${instanceName}`,
+        {
+          headers: {
+            'apikey': this.apiKey
+          }
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Erro ao deletar instância:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data || error.message
+      };
+    }
+  }
+
+  // Reiniciar instância
+  async restartInstance(instanceName) {
+    try {
+      const response = await axios.post(
+        `${this.baseURL}/instance/restart/${instanceName}`,
+        {},
+        {
+          headers: {
+            'apikey': this.apiKey
+          }
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Erro ao reiniciar instância:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data || error.message
+      };
+    }
+  }
+
+  // Conectar instância (obter QR code ou pairing code)
+  async connectInstance(instanceName, number = null) {
+    try {
+      const params = number ? { number } : {};
+
+      const response = await axios.get(
+        `${this.baseURL}/instance/connect/${instanceName}`,
+        {
+          headers: {
+            'apikey': this.apiKey
+          },
+          params
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Erro ao conectar instância:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data || error.message
+      };
+    }
+  }
+
+  // Logout/Desconectar instância
+  async logoutInstance(instanceName) {
+    try {
+      const response = await axios.delete(
+        `${this.baseURL}/instance/logout/${instanceName}`,
+        {
+          headers: {
+            'apikey': this.apiKey
+          }
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Erro ao fazer logout da instância:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data || error.message
+      };
+    }
+  }
+
+  // Obter QR Code em base64
+  async getQRCode(instanceName) {
+    try {
+      const response = await axios.get(
+        `${this.baseURL}/instance/qrcode/${instanceName}`,
+        {
+          headers: {
+            'apikey': this.apiKey
+          }
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Erro ao obter QR Code:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data || error.message
+      };
+    }
+  }
+
+  // Obter status de conexão detalhado
+  async getConnectionStatus(instanceName) {
+    try {
+      const response = await axios.get(
+        `${this.baseURL}/instance/connectionState/${instanceName}`,
+        {
+          headers: {
+            'apikey': this.apiKey
+          }
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Erro ao obter status de conexão:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data || error.message
+      };
+    }
+  }
 }
 
 module.exports = new EvolutionService();

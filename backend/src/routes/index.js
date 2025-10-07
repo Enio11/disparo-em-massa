@@ -33,6 +33,15 @@ router.post('/instancias', instanciaController.criar);
 router.get('/instancias/:id/verificar', instanciaController.verificarConexao);
 router.delete('/instancias/:id', instanciaController.deletar);
 
+// Rotas de Gerenciamento Evolution API
+router.post('/instancias/evolution/criar', instanciaController.criarEvolution);
+router.delete('/instancias/evolution/:instanceName', instanciaController.deletarEvolution);
+router.post('/instancias/evolution/:instanceName/reiniciar', instanciaController.reiniciarEvolution);
+router.get('/instancias/evolution/:instanceName/conectar', instanciaController.conectarEvolution);
+router.delete('/instancias/evolution/:instanceName/logout', instanciaController.logoutEvolution);
+router.get('/instancias/evolution/:instanceName/qrcode', instanciaController.obterQRCode);
+router.get('/instancias/evolution/:instanceName/status', instanciaController.statusConexao);
+
 // Rotas de Clientes Supabase
 router.get('/clientes-supabase', clienteSupabaseController.listar);
 router.get('/clientes-supabase/:id', clienteSupabaseController.buscar);

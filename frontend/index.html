@@ -179,22 +179,73 @@
 
         <!-- Tab: Instâncias -->
         <div id="instancias-tab" class="tab-content">
-            <h2>Instâncias Evolution API</h2>
+            <h2>🔌 Gerenciamento de Instâncias Evolution API</h2>
+            <p style="color: #666; margin-bottom: 20px;">Controle completo das instâncias WhatsApp conectadas</p>
 
-            <form id="form-instancia" class="form form-inline">
-                <div class="form-group">
-                    <label for="instancia_nome">Nome</label>
-                    <input type="text" id="instancia_nome" required placeholder="Minha Instância">
-                </div>
-                <div class="form-group">
-                    <label for="instance_name">Instance Name</label>
-                    <input type="text" id="instance_name" required placeholder="default">
-                </div>
-                <button type="submit" class="btn btn-primary">Adicionar</button>
-            </form>
+            <!-- Botões de Ação -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="mostrarFormCriarInstancia()">
+                    ➕ Nova Instância
+                </button>
+                <button class="btn btn-secondary" onclick="atualizarListaInstancias()">
+                    🔄 Atualizar Lista
+                </button>
+            </div>
 
-            <div id="instancias-list" class="list">
+            <!-- Formulário para Criar Nova Instância (inicialmente oculto) -->
+            <div id="form-criar-instancia" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">Criar Nova Instância</h3>
+                <form id="form-nova-instancia" onsubmit="criarNovaInstancia(event)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label for="nova_instance_name">Nome da Instância *</label>
+                            <input type="text" id="nova_instance_name" required placeholder="minha-instancia-01">
+                            <small>Use apenas letras, números e hífens</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nova_integration">Tipo de Integração *</label>
+                            <select id="nova_integration" required>
+                                <option value="WHATSAPP-BAILEYS">WhatsApp Web (Baileys)</option>
+                                <option value="WHATSAPP-BUSINESS">WhatsApp Business API</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nova_number">Número (opcional)</label>
+                            <input type="text" id="nova_number" placeholder="5511999999999">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nova_token">Token (opcional)</label>
+                            <input type="text" id="nova_token" placeholder="Token de autenticação">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button type="submit" class="btn btn-primary">Criar Instância</button>
+                        <button type="button" class="btn btn-secondary" onclick="ocultarFormCriarInstancia()">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Lista de Instâncias -->
+            <div id="instancias-evolution-list" style="display: grid; gap: 15px;">
                 <div class="loading">Carregando instâncias...</div>
+            </div>
+
+            <!-- Modal para QR Code -->
+            <div id="modal-qrcode" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 500px;">
+                    <span class="close" onclick="fecharModalQRCode()">&times;</span>
+                    <h2>📱 Conectar Instância</h2>
+                    <div id="qrcode-container" style="text-align: center; padding: 20px;">
+                        <div class="loading">Gerando QR Code...</div>
+                    </div>
+                    <p style="text-align: center; color: #666; margin: 10px 0;">
+                        Escaneie o QR Code com o WhatsApp do seu celular
+                    </p>
+                </div>
             </div>
         </div>
 

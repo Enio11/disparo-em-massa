@@ -147,6 +147,205 @@ class InstanciaController {
       });
     }
   }
+
+  // ==================== GERENCIAMENTO EVOLUTION API ====================
+
+  // Criar instância na Evolution API
+  async criarEvolution(req, res) {
+    try {
+      const instanceData = req.body;
+
+      if (!instanceData.instanceName) {
+        return res.status(400).json({
+          success: false,
+          error: 'instanceName é obrigatório'
+        });
+      }
+
+      const resultado = await evolutionService.createInstance(instanceData);
+
+      if (resultado.success) {
+        res.status(201).json(resultado);
+      } else {
+        res.status(400).json(resultado);
+      }
+    } catch (error) {
+      console.error('Erro ao criar instância Evolution:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao criar instância na Evolution API'
+      });
+    }
+  }
+
+  // Deletar instância da Evolution API
+  async deletarEvolution(req, res) {
+    try {
+      const { instanceName } = req.params;
+
+      if (!instanceName) {
+        return res.status(400).json({
+          success: false,
+          error: 'instanceName é obrigatório'
+        });
+      }
+
+      const resultado = await evolutionService.deleteInstance(instanceName);
+
+      if (resultado.success) {
+        res.json(resultado);
+      } else {
+        res.status(400).json(resultado);
+      }
+    } catch (error) {
+      console.error('Erro ao deletar instância Evolution:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao deletar instância da Evolution API'
+      });
+    }
+  }
+
+  // Reiniciar instância
+  async reiniciarEvolution(req, res) {
+    try {
+      const { instanceName } = req.params;
+
+      if (!instanceName) {
+        return res.status(400).json({
+          success: false,
+          error: 'instanceName é obrigatório'
+        });
+      }
+
+      const resultado = await evolutionService.restartInstance(instanceName);
+
+      if (resultado.success) {
+        res.json(resultado);
+      } else {
+        res.status(400).json(resultado);
+      }
+    } catch (error) {
+      console.error('Erro ao reiniciar instância Evolution:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao reiniciar instância'
+      });
+    }
+  }
+
+  // Conectar instância (obter QR code/pairing code)
+  async conectarEvolution(req, res) {
+    try {
+      const { instanceName } = req.params;
+      const { number } = req.query;
+
+      if (!instanceName) {
+        return res.status(400).json({
+          success: false,
+          error: 'instanceName é obrigatório'
+        });
+      }
+
+      const resultado = await evolutionService.connectInstance(instanceName, number);
+
+      if (resultado.success) {
+        res.json(resultado);
+      } else {
+        res.status(400).json(resultado);
+      }
+    } catch (error) {
+      console.error('Erro ao conectar instância Evolution:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao conectar instância'
+      });
+    }
+  }
+
+  // Logout/Desconectar instância
+  async logoutEvolution(req, res) {
+    try {
+      const { instanceName } = req.params;
+
+      if (!instanceName) {
+        return res.status(400).json({
+          success: false,
+          error: 'instanceName é obrigatório'
+        });
+      }
+
+      const resultado = await evolutionService.logoutInstance(instanceName);
+
+      if (resultado.success) {
+        res.json(resultado);
+      } else {
+        res.status(400).json(resultado);
+      }
+    } catch (error) {
+      console.error('Erro ao fazer logout da instância:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao fazer logout da instância'
+      });
+    }
+  }
+
+  // Obter QR Code
+  async obterQRCode(req, res) {
+    try {
+      const { instanceName } = req.params;
+
+      if (!instanceName) {
+        return res.status(400).json({
+          success: false,
+          error: 'instanceName é obrigatório'
+        });
+      }
+
+      const resultado = await evolutionService.getQRCode(instanceName);
+
+      if (resultado.success) {
+        res.json(resultado);
+      } else {
+        res.status(400).json(resultado);
+      }
+    } catch (error) {
+      console.error('Erro ao obter QR Code:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao obter QR Code'
+      });
+    }
+  }
+
+  // Obter status de conexão detalhado
+  async statusConexao(req, res) {
+    try {
+      const { instanceName } = req.params;
+
+      if (!instanceName) {
+        return res.status(400).json({
+          success: false,
+          error: 'instanceName é obrigatório'
+        });
+      }
+
+      const resultado = await evolutionService.getConnectionStatus(instanceName);
+
+      if (resultado.success) {
+        res.json(resultado);
+      } else {
+        res.status(400).json(resultado);
+      }
+    } catch (error) {
+      console.error('Erro ao obter status de conexão:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro ao obter status de conexão'
+      });
+    }
+  }
 }
 
 module.exports = new InstanciaController();
