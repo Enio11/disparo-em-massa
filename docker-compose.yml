@@ -11,7 +11,7 @@ services:
       - DB_PORT=5432
       - DB_NAME=disparo_capitao_clean
       - DB_USER=postgres
-      - DB_PASSWORD=123
+      - DB_PASSWORD=04c24e071db756199fe467dc9d341c3c
 
       ## Configurações da Evolution API
       - EVOLUTION_API_URL=https://evolution.manager.capitaoclean.com
