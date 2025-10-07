@@ -28,6 +28,7 @@
             <button class="tab-btn active" data-tab="campanhas">Campanhas</button>
             <button class="tab-btn" data-tab="nova-campanha">Nova Campanha</button>
             <button class="tab-btn" data-tab="instancias">Instâncias</button>
+            <button class="tab-btn" data-tab="metricas">📊 Métricas & Aquecimento</button>
         </nav>
 
         <!-- Tab: Campanhas -->
@@ -194,6 +195,91 @@
 
             <div id="instancias-list" class="list">
                 <div class="loading">Carregando instâncias...</div>
+            </div>
+        </div>
+
+        <!-- Tab: Métricas & Aquecimento -->
+        <div id="metricas-tab" class="tab-content">
+            <h2>📊 Dashboard Anti-Bloqueio</h2>
+            <p style="color: #666; margin-bottom: 20px;">Sistema de métricas em tempo real e aquecimento gradual de números WhatsApp</p>
+
+            <!-- Seletor de Instância -->
+            <div class="form-group">
+                <label for="instance-metrics">Selecione a Instância:</label>
+                <select id="instance-metrics" onchange="carregarMetricas()" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                    <option value="">-- Selecione uma instância --</option>
+                </select>
+            </div>
+
+            <!-- Cards de Métricas -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; color: white;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.9;">Mensagens Hoje</h4>
+                    <p style="margin: 0; font-size: 32px; font-weight: bold;" id="daily-count">-</p>
+                    <small id="daily-limit" style="opacity: 0.8;">de 500</small>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 10px; color: white;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.9;">Mensagens Esta Hora</h4>
+                    <p style="margin: 0; font-size: 32px; font-weight: bold;" id="hourly-count">-</p>
+                    <small style="opacity: 0.8;">de 50</small>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; border-radius: 10px; color: white;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.9;">Status Aquecimento</h4>
+                    <p style="margin: 0; font-size: 24px; font-weight: bold;" id="warmup-status">-</p>
+                    <small id="warmup-day" style="opacity: 0.8;">-</small>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); padding: 20px; border-radius: 10px; color: white;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.9;">Horário Permitido</h4>
+                    <p style="margin: 0; font-size: 24px; font-weight: bold;" id="business-hours">-</p>
+                    <small style="opacity: 0.8;">8h - 20h (Seg-Sex)</small>
+                </div>
+            </div>
+
+            <!-- Barra de Progresso Aquecimento -->
+            <div id="warmup-progress" style="display:none; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+                <h3 style="margin-top: 0;">🔥 Progresso do Aquecimento</h3>
+                <div style="background: #e0e0e0; height: 30px; border-radius: 15px; overflow: hidden; margin: 15px 0;">
+                    <div id="warmup-progress-bar" style="height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 0%; transition: width 0.5s;"></div>
+                </div>
+                <p id="warmup-description" style="color: #666; margin: 0;">-</p>
+            </div>
+
+            <!-- Ações -->
+            <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn" onclick="iniciarAquecimento()" style="background: #667eea; color: white;">
+                    🔥 Iniciar Aquecimento
+                </button>
+                <button class="btn" onclick="pararAquecimento()" style="background: #dc3545; color: white;">
+                    ⏹️ Parar Aquecimento
+                </button>
+                <button class="btn btn-secondary" onclick="carregarMetricas()">
+                    🔄 Atualizar
+                </button>
+                <button class="btn" onclick="verCronograma()" style="background: #17a2b8; color: white;">
+                    📅 Ver Cronograma
+                </button>
+            </div>
+
+            <!-- Informações de Proteção -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 20px; border-left: 4px solid #28a745;">
+                <h3 style="margin-top: 0;">🛡️ Proteções Ativas</h3>
+                <ul style="margin: 0; padding-left: 20px; color: #666;">
+                    <li>✅ <strong>Delays Inteligentes:</strong> 20-90 segundos entre mensagens</li>
+                    <li>✅ <strong>Limites Automáticos:</strong> 50 msgs/hora, 500 msgs/dia</li>
+                    <li>✅ <strong>Horário Comercial:</strong> Apenas Seg-Sex das 8h às 20h</li>
+                    <li>✅ <strong>Pausas Preventivas:</strong> A cada 20 e 100 mensagens</li>
+                    <li>✅ <strong>Personalização:</strong> Variáveis {{nome}} e {{telefone}}</li>
+                    <li>✅ <strong>Validação:</strong> Números formatados automaticamente</li>
+                </ul>
+            </div>
+
+            <!-- Cronograma Completo (inicialmente oculto) -->
+            <div id="cronograma-section" style="display: none; margin-top: 30px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3>📅 Cronograma de Aquecimento (28 dias)</h3>
+                <div id="warmup-schedule" style="max-height: 500px; overflow-y: auto;"></div>
             </div>
         </div>
 

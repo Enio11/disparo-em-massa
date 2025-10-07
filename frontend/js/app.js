@@ -715,6 +715,209 @@ function mostrarErro(mensagem) {
     alert('Erro: ' + mensagem);
 }
 
+// ========== FUNÇÕES DE MÉTRICAS E AQUECIMENTO ==========
+
+// Carregar instâncias no select de métricas
+async function carregarInstanciasMetricas() {
+    try {
+        const response = await fetch(`${API_URL}/instancias/evolution/listar`);
+        const data = await response.json();
+
+        const select = document.getElementById('instance-metrics');
+        select.innerHTML = '<option value="">-- Selecione uma instância --</option>';
+
+        if (data.success && data.data) {
+            data.data.forEach(inst => {
+                const option = document.createElement('option');
+                option.value = inst.instance.instanceName;
+                option.textContent = `${inst.instance.instanceName} (${inst.instance.status})`;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao carregar instâncias:', error);
+    }
+}
+
+// Carregar métricas da instância selecionada
+async function carregarMetricas() {
+    const instanceName = document.getElementById('instance-metrics').value;
+
+    if (!instanceName) {
+        alert('Selecione uma instância primeiro!');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/warmup/metrics/${instanceName}`);
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Erro ao carregar métricas');
+        }
+
+        const { warmup, antiBan } = result.data;
+
+        // Atualizar cards
+        document.getElementById('daily-count').textContent = antiBan.dailyCount || 0;
+        document.getElementById('daily-limit').textContent = `de ${antiBan.limits?.daily || 500}`;
+        document.getElementById('hourly-count').textContent = antiBan.hourlyCount || 0;
+        document.getElementById('business-hours').textContent = antiBan.isBusinessHours ? '✅ Sim' : '❌ Não';
+
+        // Aquecimento
+        if (warmup.isWarmingUp) {
+            document.getElementById('warmup-status').textContent = `Dia ${warmup.currentDay}/28`;
+            document.getElementById('warmup-day').textContent = warmup.description || '';
+            document.getElementById('warmup-progress').style.display = 'block';
+            document.getElementById('warmup-progress-bar').style.width = warmup.progress + '%';
+            document.getElementById('warmup-description').textContent =
+                `${warmup.maxMessagesPerDay} mensagens permitidas hoje (${warmup.progress}% completo)`;
+        } else if (warmup.isComplete) {
+            document.getElementById('warmup-status').textContent = '✅ Completo';
+            document.getElementById('warmup-day').textContent = 'Aquecimento finalizado!';
+            document.getElementById('warmup-progress').style.display = 'none';
+        } else {
+            document.getElementById('warmup-status').textContent = 'Não ativo';
+            document.getElementById('warmup-day').textContent = 'Clique em "Iniciar Aquecimento"';
+            document.getElementById('warmup-progress').style.display = 'none';
+        }
+
+    } catch (error) {
+        console.error('Erro ao carregar métricas:', error);
+        alert('Erro ao carregar métricas: ' + error.message);
+    }
+}
+
+// Iniciar aquecimento
+async function iniciarAquecimento() {
+    const instanceName = document.getElementById('instance-metrics').value;
+
+    if (!instanceName) {
+        alert('Selecione uma instância primeiro!');
+        return;
+    }
+
+    if (!confirm(`Tem certeza que deseja iniciar o aquecimento de 28 dias para a instância "${instanceName}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/warmup/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instance_name: instanceName })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Aquecimento iniciado! O progresso será acompanhado automaticamente nos próximos 28 dias.');
+            carregarMetricas();
+        } else {
+            alert('❌ ' + (data.error || 'Erro ao iniciar aquecimento'));
+        }
+    } catch (error) {
+        console.error('Erro ao iniciar aquecimento:', error);
+        alert('Erro ao iniciar aquecimento: ' + error.message);
+    }
+}
+
+// Parar aquecimento
+async function pararAquecimento() {
+    const instanceName = document.getElementById('instance-metrics').value;
+
+    if (!instanceName) {
+        alert('Selecione uma instância primeiro!');
+        return;
+    }
+
+    if (!confirm('Tem certeza que deseja parar o aquecimento? O progresso será perdido.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/warmup/stop`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instance_name: instanceName })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Aquecimento parado!');
+            carregarMetricas();
+        } else {
+            alert('❌ ' + (data.error || 'Erro ao parar aquecimento'));
+        }
+    } catch (error) {
+        console.error('Erro ao parar aquecimento:', error);
+        alert('Erro ao parar aquecimento: ' + error.message);
+    }
+}
+
+// Ver cronograma completo
+async function verCronograma() {
+    const cronogramaSection = document.getElementById('cronograma-section');
+
+    // Toggle visibility
+    if (cronogramaSection.style.display === 'block') {
+        cronogramaSection.style.display = 'none';
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/warmup/schedule`);
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Erro ao carregar cronograma');
+        }
+
+        const schedule = result.data;
+        const html = schedule.map(day => `
+            <div style="padding: 15px; border: 1px solid #e0e0e0; margin: 10px 0; border-radius: 8px; background: ${day.day % 7 === 0 ? '#f8f9fa' : 'white'};">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="font-size: 16px; color: #667eea;">Dia ${day.day}</strong>
+                        <p style="margin: 5px 0; color: #666;">${day.description}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 24px; font-weight: bold; color: #764ba2;">${day.maxMessages}</span>
+                        <p style="margin: 0; color: #999; font-size: 12px;">mensagens</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('warmup-schedule').innerHTML = html;
+        cronogramaSection.style.display = 'block';
+
+        // Scroll suave até o cronograma
+        cronogramaSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    } catch (error) {
+        console.error('Erro ao carregar cronograma:', error);
+        alert('Erro ao carregar cronograma: ' + error.message);
+    }
+}
+
+// Carregar instâncias quando a aba de métricas for aberta
+document.addEventListener('DOMContentLoaded', () => {
+    // Observer para detectar quando a tab de métricas é aberta
+    const observer = new MutationObserver(() => {
+        const metricasTab = document.getElementById('metricas-tab');
+        if (metricasTab && metricasTab.classList.contains('active')) {
+            carregarInstanciasMetricas();
+        }
+    });
+
+    const metricasTab = document.getElementById('metricas-tab');
+    if (metricasTab) {
+        observer.observe(metricasTab, { attributes: true, attributeFilter: ['class'] });
+    }
+});
+
 // Auto-refresh das campanhas a cada 10 segundos se houver campanhas enviando
 setInterval(() => {
     const tabCampanhasAtiva = document.getElementById('campanhas-tab').classList.contains('active');
